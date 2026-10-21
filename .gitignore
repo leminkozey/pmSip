@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.xcarchive
+*.dSYM/
+
+# Local editor and tooling settings
+.vscode/
+.idea/
+.claude/
+
+# Local credentials and signing files
+.env
+.env.*
+*.p12
+*.p8
+*.mobileprovision
+*.provisionprofile
