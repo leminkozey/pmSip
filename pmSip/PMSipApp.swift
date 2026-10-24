@@ -32,9 +32,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
 
         // @Published emits before the property changes; use the emitted value.
-        state.$isSleepPrevented
-            .sink { [weak self] isSleepPrevented in
-                self?.updateIcon(isSleepPrevented: isSleepPrevented)
+        state.$sleepState
+            .sink { [weak self] sleepState in
+                self?.updateIcon(sleepState: sleepState)
             }
             .store(in: &cancellables)
         state.$errorMessage
@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         guard NSApp.currentEvent?.type == .rightMouseUp else {
-            state.setSleepPrevented(!state.isSleepPrevented)
+            state.toggleSleepPrevention()
             return
         }
 
@@ -68,18 +68,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 
-    private func updateIcon(isSleepPrevented: Bool) {
+    private func updateIcon(sleepState: PMSipState.SleepState) {
         guard let button = statusItem.button else { return }
 
-        if isSleepPrevented {
+        switch sleepState {
+        case .enabled:
             let base = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Sleep prevention enabled")
             let tinted = base.map { Self.tinted($0, color: Self.activeColor) }
             tinted?.isTemplate = false
             button.image = tinted
-        } else {
+        case .disabled:
             let image = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: "Sleep prevention disabled")
             image?.isTemplate = true
             button.image = image
+        case .unknown:
+            let base = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Sleep prevention state unknown")
+            let tinted = base.map { Self.tinted($0, color: .systemRed) }
+            tinted?.isTemplate = false
+            button.image = tinted
         }
     }
 

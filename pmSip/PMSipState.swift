@@ -3,7 +3,13 @@ import Foundation
 
 @MainActor
 final class PMSipState: ObservableObject {
-    @Published private(set) var isSleepPrevented: Bool
+    enum SleepState {
+        case enabled
+        case disabled
+        case unknown
+    }
+
+    @Published private(set) var sleepState: SleepState
     @Published private(set) var stateSince: Date
     @Published private(set) var errorMessage: String?
 
@@ -11,15 +17,29 @@ final class PMSipState: ObservableObject {
     private static let sudoPath = "/usr/bin/sudo"
 
     init() {
-        let isSleepPrevented = Self.readDisableSleepState()
-        self.isSleepPrevented = isSleepPrevented ?? false
+        let sleepState = Self.readDisableSleepState()
+        self.sleepState = sleepState
         self.stateSince = Date()
-        self.errorMessage = isSleepPrevented == nil
+        self.errorMessage = sleepState == .unknown
             ? "Could not read the pmset sleep state."
             : nil
     }
 
-    func setSleepPrevented(_ enabled: Bool) {
+    func toggleSleepPrevention() {
+        let enabled: Bool
+        switch sleepState {
+        case .enabled:
+            enabled = false
+        case .disabled:
+            enabled = true
+        case .unknown:
+            sleepState = Self.readDisableSleepState()
+            errorMessage = sleepState == .unknown
+                ? "Could not read the pmset sleep state."
+                : nil
+            return
+        }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: Self.sudoPath)
         // Fail immediately if sudo requires a password.
@@ -42,12 +62,12 @@ final class PMSipState: ObservableObject {
             return
         }
 
-        isSleepPrevented = enabled
+        sleepState = enabled ? .enabled : .disabled
         stateSince = Date()
         errorMessage = nil
     }
 
-    private static func readDisableSleepState() -> Bool? {
+    private static func readDisableSleepState() -> SleepState {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: pmsetPath)
         process.arguments = ["-g"]
@@ -59,7 +79,7 @@ final class PMSipState: ObservableObject {
         do {
             try process.run()
         } catch {
-            return nil
+            return .unknown
         }
 
         let data = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
@@ -67,20 +87,24 @@ final class PMSipState: ObservableObject {
 
         guard process.terminationStatus == 0,
               let output = String(data: data, encoding: .utf8) else {
-            return nil
+            return .unknown
         }
 
         return parseSleepDisabled(from: output)
     }
 
-    static func parseSleepDisabled(from output: String) -> Bool? {
+    static func parseSleepDisabled(from output: String) -> SleepState {
         for line in output.split(separator: "\n") {
             let components = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
             guard let key = components.first, key == "SleepDisabled" else { continue }
-            guard let value = components.dropFirst().first else { continue }
-            return value == "1"
+            guard components.count == 2 else { return .unknown }
+            switch components[1] {
+            case "1": return .enabled
+            case "0": return .disabled
+            default: return .unknown
+            }
         }
 
-        return nil
+        return .unknown
     }
 }
