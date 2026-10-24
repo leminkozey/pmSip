@@ -3,29 +3,45 @@ import Foundation
 
 @MainActor
 final class PMSipState: ObservableObject {
-    enum SleepState {
+    enum SleepState: Sendable {
         case enabled
         case disabled
         case unknown
     }
 
-    @Published private(set) var sleepState: SleepState
-    @Published private(set) var stateSince: Date
+    @Published private(set) var sleepState: SleepState = .unknown
+    @Published private(set) var stateSince = Date()
     @Published private(set) var errorMessage: String?
 
-    private static let pmsetPath = "/usr/bin/pmset"
-    private static let sudoPath = "/usr/bin/sudo"
+    private nonisolated static let pmsetPath = "/usr/bin/pmset"
+    private nonisolated static let sudoPath = "/usr/bin/sudo"
+    private var refreshTask: Task<Void, Never>?
+    private var isToggling = false
 
     init() {
-        let sleepState = Self.readDisableSleepState()
-        self.sleepState = sleepState
-        self.stateSince = Date()
-        self.errorMessage = sleepState == .unknown
-            ? "Could not read the pmset sleep state."
-            : nil
+        refreshSleepState()
+    }
+
+    func refreshSleepState() {
+        guard refreshTask == nil, !isToggling else { return }
+
+        refreshTask = Task {
+            defer { refreshTask = nil }
+            let observed = await Task.detached(priority: .utility) {
+                Self.readDisableSleepState()
+            }.value
+            guard !Task.isCancelled else { return }
+
+            updateSleepState(observed)
+            errorMessage = observed == .unknown
+                ? "Could not read the pmset sleep state."
+                : nil
+        }
     }
 
     func toggleSleepPrevention() {
+        guard !isToggling else { return }
+
         let enabled: Bool
         switch sleepState {
         case .enabled:
@@ -33,13 +49,48 @@ final class PMSipState: ObservableObject {
         case .disabled:
             enabled = true
         case .unknown:
-            sleepState = Self.readDisableSleepState()
-            errorMessage = sleepState == .unknown
-                ? "Could not read the pmset sleep state."
-                : nil
+            refreshSleepState()
             return
         }
 
+        refreshTask?.cancel()
+        isToggling = true
+        Task {
+            defer { isToggling = false }
+            let writeError = await Task.detached(priority: .userInitiated) {
+                Self.writeDisableSleepState(enabled)
+            }.value
+
+            let requested: SleepState = enabled ? .enabled : .disabled
+            if writeError == nil {
+                updateSleepState(requested)
+                errorMessage = nil
+            }
+
+            let observed = await Task.detached(priority: .userInitiated) {
+                Self.readDisableSleepState()
+            }.value
+            updateSleepState(observed)
+
+            if observed == .unknown {
+                errorMessage = "Could not read the pmset sleep state after toggling."
+            } else if let writeError {
+                errorMessage = writeError
+            } else if observed != requested {
+                errorMessage = "The pmset sleep state does not match the requested setting."
+            } else {
+                errorMessage = nil
+            }
+        }
+    }
+
+    private func updateSleepState(_ observed: SleepState) {
+        guard sleepState != observed else { return }
+        sleepState = observed
+        stateSince = Date()
+    }
+
+    private nonisolated static func writeDisableSleepState(_ enabled: Bool) -> String? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: Self.sudoPath)
         // Fail immediately if sudo requires a password.
@@ -51,23 +102,19 @@ final class PMSipState: ObservableObject {
         do {
             try process.run()
         } catch {
-            errorMessage = "Could not start sudo: \(error.localizedDescription)"
-            return
+            return "Could not start sudo: \(error.localizedDescription)"
         }
 
         process.waitUntilExit()
 
         guard process.terminationStatus == 0 else {
-            errorMessage = "Could not change the sleep state. Check the sudoers setup in INSTALL.md."
-            return
+            return "Could not change the sleep state. Check the sudoers setup in INSTALL.md."
         }
 
-        sleepState = enabled ? .enabled : .disabled
-        stateSince = Date()
-        errorMessage = nil
+        return nil
     }
 
-    private static func readDisableSleepState() -> SleepState {
+    private nonisolated static func readDisableSleepState() -> SleepState {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: pmsetPath)
         process.arguments = ["-g"]
@@ -93,7 +140,7 @@ final class PMSipState: ObservableObject {
         return parseSleepDisabled(from: output)
     }
 
-    static func parseSleepDisabled(from output: String) -> SleepState {
+    nonisolated static func parseSleepDisabled(from output: String) -> SleepState {
         for line in output.split(separator: "\n") {
             let components = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
             guard let key = components.first, key == "SleepDisabled" else { continue }

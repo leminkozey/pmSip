@@ -17,10 +17,12 @@ Under the hood, it toggles `sudo pmset -a disablesleep 1/0`. Same command, less 
 - **Left-click** to toggle sleep prevention.
 - **Filled brown cup:** sleep prevention is on. Your Mac has had its coffee.
 - **Outline cup:** normal sleep is allowed. Bedtime is back on the table.
-- **Red cup:** the sleep setting could not be read. Hover for the error; click to retry reading without changing the setting.
+- **Red cup:** something went wrong. Hover for the error. If the sleep setting is unknown, clicking only retries reading it.
 - **Right-click** to quit. Quitting does not reset the sleep setting, so turn sleep prevention off first if you're done.
 
 Errors appear in the icon's tooltip. If a toggle fails, hover over the cup to see what went wrong.
+
+pmSip checks the system setting at startup, after wake, and every 30 seconds in the background. Clicks start the toggle immediately, without an extra read beforehand. Once the command succeeds, the cup updates and pmSip checks the result in the background. External changes can take until the next refresh to appear.
 
 ## Installation
 

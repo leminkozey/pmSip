@@ -33,14 +33,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // @Published emits before the property changes; use the emitted value.
         state.$sleepState
-            .sink { [weak self] sleepState in
-                self?.updateIcon(sleepState: sleepState)
-            }
-            .store(in: &cancellables)
-        state.$errorMessage
-            .sink { [weak self] errorMessage in
+            .combineLatest(state.$errorMessage)
+            .sink { [weak self] sleepState, errorMessage in
+                self?.updateIcon(sleepState: sleepState, errorMessage: errorMessage)
                 self?.updateTooltip(errorMessage: errorMessage)
             }
+            .store(in: &cancellables)
+
+        Timer.publish(every: 30, tolerance: 5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.state.refreshSleepState() }
+            .store(in: &cancellables)
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.state.refreshSleepState() }
             .store(in: &cancellables)
     }
 
@@ -68,10 +74,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 
-    private func updateIcon(sleepState: PMSipState.SleepState) {
+    private func updateIcon(sleepState: PMSipState.SleepState, errorMessage: String?) {
         guard let button = statusItem.button else { return }
 
-        switch sleepState {
+        switch errorMessage == nil ? sleepState : .unknown {
         case .enabled:
             let base = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Sleep prevention enabled")
             let tinted = base.map { Self.tinted($0, color: Self.activeColor) }
@@ -82,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             image?.isTemplate = true
             button.image = image
         case .unknown:
-            let base = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: "Sleep prevention state unknown")
+            let base = NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: errorMessage ?? "Sleep prevention state unknown")
             let tinted = base.map { Self.tinted($0, color: .systemRed) }
             tinted?.isTemplate = false
             button.image = tinted
