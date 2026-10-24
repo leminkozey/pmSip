@@ -24,6 +24,8 @@ Errors appear in the icon's tooltip. If a toggle fails, hover over the cup to se
 
 pmSip checks the system setting at startup, after wake, and every 30 seconds in the background. Clicks start the toggle immediately, without an extra read beforehand. Once the command succeeds, the cup updates and pmSip checks the result in the background. External changes can take until the next refresh to appear.
 
+Commands time out after 3 seconds. pmSip stops the command, shows the error, and allows clicks again. A timed-out toggle is never retried automatically; the next click only reads the current setting.
+
 ## Installation
 
 Requires **macOS 13 or later**.

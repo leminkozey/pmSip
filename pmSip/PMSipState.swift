@@ -1,4 +1,5 @@
 import Combine
+import Darwin
 import Foundation
 
 @MainActor
@@ -15,6 +16,19 @@ final class PMSipState: ObservableObject {
 
     private nonisolated static let pmsetPath = "/usr/bin/pmset"
     private nonisolated static let sudoPath = "/usr/bin/sudo"
+
+    private enum CommandFailure: Error {
+        case timedOut
+        case failed(String)
+
+        var message: String {
+            switch self {
+            case .timedOut: return "The pmset command timed out after 3 seconds."
+            case .failed(let message): return message
+            }
+        }
+    }
+
     private var refreshTask: Task<Void, Never>?
     private var isToggling = false
 
@@ -32,10 +46,8 @@ final class PMSipState: ObservableObject {
             }.value
             guard !Task.isCancelled else { return }
 
-            updateSleepState(observed)
-            errorMessage = observed == .unknown
-                ? "Could not read the pmset sleep state."
-                : nil
+            updateSleepState(observed.state)
+            errorMessage = observed.errorMessage
         }
     }
 
@@ -61,6 +73,12 @@ final class PMSipState: ObservableObject {
                 Self.writeDisableSleepState(enabled)
             }.value
 
+            if case .timedOut? = writeError {
+                updateSleepState(.unknown)
+                errorMessage = writeError?.message
+                return
+            }
+
             let requested: SleepState = enabled ? .enabled : .disabled
             if writeError == nil {
                 updateSleepState(requested)
@@ -70,13 +88,13 @@ final class PMSipState: ObservableObject {
             let observed = await Task.detached(priority: .userInitiated) {
                 Self.readDisableSleepState()
             }.value
-            updateSleepState(observed)
+            updateSleepState(observed.state)
 
-            if observed == .unknown {
-                errorMessage = "Could not read the pmset sleep state after toggling."
+            if let readError = observed.errorMessage {
+                errorMessage = readError
             } else if let writeError {
-                errorMessage = writeError
-            } else if observed != requested {
+                errorMessage = writeError.message
+            } else if observed.state != requested {
                 errorMessage = "The pmset sleep state does not match the requested setting."
             } else {
                 errorMessage = nil
@@ -90,54 +108,73 @@ final class PMSipState: ObservableObject {
         stateSince = Date()
     }
 
-    private nonisolated static func writeDisableSleepState(_ enabled: Bool) -> String? {
+    private nonisolated static func writeDisableSleepState(_ enabled: Bool) -> CommandFailure? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: Self.sudoPath)
         // Fail immediately if sudo requires a password.
         process.arguments = ["-n", Self.pmsetPath, "-a", "disablesleep", enabled ? "1" : "0"]
 
-        process.standardError = Pipe()
-        process.standardOutput = Pipe()
+        process.standardError = FileHandle.nullDevice
+        process.standardOutput = FileHandle.nullDevice
 
         do {
-            try process.run()
+            try runWithTimeout(process)
+        } catch CommandFailure.timedOut {
+            return .timedOut
         } catch {
-            return "Could not start sudo: \(error.localizedDescription)"
+            return .failed("Could not start sudo: \(error.localizedDescription)")
         }
 
-        process.waitUntilExit()
-
         guard process.terminationStatus == 0 else {
-            return "Could not change the sleep state. Check the sudoers setup in INSTALL.md."
+            return .failed("Could not change the sleep state. Check the sudoers setup in INSTALL.md.")
         }
 
         return nil
     }
 
-    private nonisolated static func readDisableSleepState() -> SleepState {
+    private nonisolated static func readDisableSleepState() -> (state: SleepState, errorMessage: String?) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: pmsetPath)
         process.arguments = ["-g"]
 
         let stdoutPipe = Pipe()
         process.standardOutput = stdoutPipe
-        process.standardError = Pipe()
+        process.standardError = FileHandle.nullDevice
+        defer { try? stdoutPipe.fileHandleForReading.close() }
 
         do {
-            try process.run()
+            try runWithTimeout(process)
+        } catch CommandFailure.timedOut {
+            return (.unknown, CommandFailure.timedOut.message)
         } catch {
-            return .unknown
+            return (.unknown, "Could not read the pmset sleep state.")
         }
 
         let data = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
 
         guard process.terminationStatus == 0,
               let output = String(data: data, encoding: .utf8) else {
-            return .unknown
+            return (.unknown, "Could not read the pmset sleep state.")
         }
 
-        return parseSleepDisabled(from: output)
+        let state = parseSleepDisabled(from: output)
+        return (state, state == .unknown ? "Could not read the pmset sleep state." : nil)
+    }
+
+    private nonisolated static func runWithTimeout(_ process: Process) throws {
+        let exited = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in exited.signal() }
+        try process.run()
+
+        guard exited.wait(timeout: .now() + 3) == .timedOut else { return }
+
+        if process.isRunning {
+            process.terminate()
+            if exited.wait(timeout: .now() + .milliseconds(200)) == .timedOut, process.isRunning {
+                kill(process.processIdentifier, SIGKILL)
+            }
+        }
+        throw CommandFailure.timedOut
     }
 
     nonisolated static func parseSleepDisabled(from output: String) -> SleepState {
