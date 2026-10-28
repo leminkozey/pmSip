@@ -12,6 +12,7 @@ targets:
       - path: pmSip
     settings:
       base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.leminkozey.pmsip
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"

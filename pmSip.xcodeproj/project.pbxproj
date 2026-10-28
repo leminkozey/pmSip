@@ -8,10 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		AFE1358B7AA3F97C8ED39AAD /* PMSipState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440C717FA51F97997276E4FA /* PMSipState.swift */; };
+		D2D9930282B40F4871AA1A1E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 402519C366BA7BC3A8DA741F /* Assets.xcassets */; };
 		DB7A928EFDDF8F0967EF6850 /* PMSipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8376153F97351C7BC72C6D /* PMSipApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		402519C366BA7BC3A8DA741F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		440C717FA51F97997276E4FA /* PMSipState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMSipState.swift; sourceTree = "<group>"; };
 		5E8376153F97351C7BC72C6D /* PMSipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMSipApp.swift; sourceTree = "<group>"; };
 		F4AC816FC3C7B1EE240E48A9 /* pmSip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pmSip.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -37,6 +39,7 @@
 		CFE8E9BDE8004FF48BFC51EF /* pmSip */ = {
 			isa = PBXGroup;
 			children = (
+				402519C366BA7BC3A8DA741F /* Assets.xcassets */,
 				5E8376153F97351C7BC72C6D /* PMSipApp.swift */,
 				440C717FA51F97997276E4FA /* PMSipState.swift */,
 			);
@@ -51,6 +54,7 @@
 			buildConfigurationList = 1D4DAADD96C2CD6238D06A31 /* Build configuration list for PBXNativeTarget "pmSip" */;
 			buildPhases = (
 				2E1DCD187E4359F9AF287AFC /* Sources */,
+				3D0474100DF42A8CC9167A94 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -92,6 +96,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3D0474100DF42A8CC9167A94 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D2D9930282B40F4871AA1A1E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2E1DCD187E4359F9AF287AFC /* Sources */ = {

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none"><title>pmSip app icon</title><rect x="100" y="100" width="824" height="824" rx="184" fill="#F6F2EA" /><svg width="684" height="684" viewBox="0 0 160 160" fill="none" x="188" y="168">
+  <title>pmSip coffee cup</title>
+  <desc>A blue coffee cup and saucer with two flowing orange trails of steam.</desc>
+  <g stroke="#EF7B35" stroke-width="5" stroke-linecap="round">
+    <path d="M78 65C56 53 103 47 82 34C69 26 81 19 90 14" />
+    <path d="M96 65C85 57 109 52 103 42" />
+  </g>
+  <g stroke="#4589BB" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 82C42 75 101 75 101 82C101 89 42 89 42 82Z" />
+    <path d="M43 85L48 111C51 127 91 127 95 111L100 85" />
+    <path d="M103 88C128 80 125 107 99 108" />
+    <path d="M36 123C15 132 47 142 78 142C108 142 131 136 127 131" />
+    <path d="M45 134C62 138 94 138 109 133" />
+  </g>
+</svg></svg>
