@@ -26,6 +26,12 @@ pmSip checks the system setting at startup, after wake, and every 30 seconds in 
 
 Commands time out after 3 seconds. pmSip stops the command, shows the error, and allows clicks again. A timed-out toggle is never retried automatically; the next click only reads the current setting.
 
+## Lid closed, lights out
+
+While sleep prevention is on, pmSip checks the lid every 1.5 seconds. When it closes, the built-in display and the keyboard backlight go to 0 and their previous levels are saved. When the lid opens (or sleep prevention is switched off, or pmSip quits), both come back as they were. The levels are also kept on disk, so a crash with the lid closed doesn't leave you in the dark.
+
+This uses private APIs (`DisplayServices`, `CoreBrightness`) and can stop working after any macOS update. If they disappear, pmSip keeps toggling sleep and simply doesn't dim.
+
 ## Installation
 
 Requires **macOS 13 or later**.

@@ -17,6 +17,7 @@ struct PMSipApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let state = PMSipState()
+    private let lidDimmer = LidDimmer()
     private var statusItem: NSStatusItem!
     private var cancellables = Set<AnyCancellable>()
 
@@ -37,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] sleepState, errorMessage in
                 self?.updateIcon(sleepState: sleepState, errorMessage: errorMessage)
                 self?.updateTooltip(errorMessage: errorMessage)
+                if sleepState != .enabled { self?.lidDimmer.restoreIfDimmed() }
             }
             .store(in: &cancellables)
 
@@ -44,10 +46,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .autoconnect()
             .sink { [weak self] _ in self?.state.refreshSleepState() }
             .store(in: &cancellables)
+        Timer.publish(every: 1.5, tolerance: 0.5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self, self.state.sleepState == .enabled else { return }
+                self.lidDimmer.poll()
+            }
+            .store(in: &cancellables)
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.state.refreshSleepState() }
             .store(in: &cancellables)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        lidDimmer.restoreIfDimmedSync()
     }
 
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
