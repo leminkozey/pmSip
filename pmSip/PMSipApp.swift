@@ -17,6 +17,7 @@ struct PMSipApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let state = PMSipState()
+    private let lidDimmer = LidDimmer()
     private var statusItem: NSStatusItem!
     private var cancellables = Set<AnyCancellable>()
 
@@ -38,6 +39,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateIcon(sleepState: sleepState, errorMessage: errorMessage)
                 self?.updateTooltip(errorMessage: errorMessage)
             }
+            .store(in: &cancellables)
+
+        state.$sleepState
+            .sink { [weak self] sleepState in self?.lidDimmer.setKeepingAwake(sleepState == .enabled) }
             .store(in: &cancellables)
 
         Timer.publish(every: 30, tolerance: 5, on: .main, in: .common)
@@ -63,11 +68,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let event = NSApp.currentEvent else { return }
 
         let menu = NSMenu()
+        let dimItem = NSMenuItem(title: "Dim display when lid is closed", action: #selector(toggleLidDimming), keyEquivalent: "")
+        dimItem.target = self
+        dimItem.state = lidDimmer.isEnabled ? .on : .off
+        menu.addItem(dimItem)
+        menu.addItem(.separator())
         let quitItem = NSMenuItem(title: "Quit pmSip", action: #selector(quit), keyEquivalent: "")
         quitItem.target = self
         menu.addItem(quitItem)
         // Keep statusItem.menu unset so left-click still toggles sleep.
         NSMenu.popUpContextMenu(menu, with: event, for: button)
+    }
+
+    @objc private func toggleLidDimming() {
+        lidDimmer.isEnabled.toggle()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        lidDimmer.restoreForQuit()
     }
 
     @objc private func quit() {
