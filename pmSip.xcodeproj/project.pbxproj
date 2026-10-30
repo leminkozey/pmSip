@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		31BEFFF66C6EBF86E365D024 /* LidDimmer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0151D54C7E328C59E4E1E8 /* LidDimmer.swift */; };
 		AFE1358B7AA3F97C8ED39AAD /* PMSipState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440C717FA51F97997276E4FA /* PMSipState.swift */; };
 		D2D9930282B40F4871AA1A1E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 402519C366BA7BC3A8DA741F /* Assets.xcassets */; };
 		DB7A928EFDDF8F0967EF6850 /* PMSipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8376153F97351C7BC72C6D /* PMSipApp.swift */; };
@@ -16,6 +17,7 @@
 		402519C366BA7BC3A8DA741F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		440C717FA51F97997276E4FA /* PMSipState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMSipState.swift; sourceTree = "<group>"; };
 		5E8376153F97351C7BC72C6D /* PMSipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PMSipApp.swift; sourceTree = "<group>"; };
+		BF0151D54C7E328C59E4E1E8 /* LidDimmer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LidDimmer.swift; sourceTree = "<group>"; };
 		F4AC816FC3C7B1EE240E48A9 /* pmSip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pmSip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -40,6 +42,7 @@
 			isa = PBXGroup;
 			children = (
 				402519C366BA7BC3A8DA741F /* Assets.xcassets */,
+				BF0151D54C7E328C59E4E1E8 /* LidDimmer.swift */,
 				5E8376153F97351C7BC72C6D /* PMSipApp.swift */,
 				440C717FA51F97997276E4FA /* PMSipState.swift */,
 			);
@@ -113,6 +116,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				31BEFFF66C6EBF86E365D024 /* LidDimmer.swift in Sources */,
 				DB7A928EFDDF8F0967EF6850 /* PMSipApp.swift in Sources */,
 				AFE1358B7AA3F97C8ED39AAD /* PMSipState.swift in Sources */,
 			);
