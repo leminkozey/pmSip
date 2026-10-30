@@ -26,6 +26,15 @@ pmSip checks the system setting at startup, after wake, and every 30 seconds in 
 
 Commands time out after 3 seconds. pmSip stops the command, shows the error, and allows clicks again. A timed-out toggle is never retried automatically; the next click only reads the current setting.
 
+## Dim when the lid closes
+
+With sleep prevention on, a closed MacBook keeps its display and keyboard backlight running. Right-click the cup and enable **Dim display when lid is closed** to turn both off while the lid is closed and sleep prevention is on. Opening the lid restores the previous brightness values. The option is off by default.
+
+- pmSip reads the lid angle sensor once per second, but only while this option and sleep prevention are both on. Macs without the sensor fall back to the open/closed flag.
+- The lid counts as closed below 10°. Change it with `defaults write com.leminkozey.pmsip lidClosedThresholdDegrees 15`.
+- The previous brightness values are saved to disk before dimming, so pmSip restores them after a crash or when it quits.
+- Display and keyboard brightness use private macOS frameworks (DisplayServices, CoreBrightness). A macOS update can break them. If a symbol is missing, that part is skipped.
+
 ## Installation
 
 Requires **macOS 13 or later**.
