@@ -14,6 +14,7 @@ final class LidDimmer: @unchecked Sendable {
     private typealias SetDisplayBrightness = @convention(c) (UInt32, Float) -> Int32
 
     private static let defaultsKey = "LidDimmer.saved"
+    private static let fadeDuration = 0.4
 
     private let queue = DispatchQueue(label: "com.leminkozey.pmsip.lid", qos: .utility)
     private var lastOpen = Levels()
@@ -72,7 +73,7 @@ final class LidDimmer: @unchecked Sendable {
     }
 
     func restoreIfDimmedSync() {
-        queue.sync { restore() }
+        queue.sync { restore(fade: false) }
     }
 
     private static func isLidClosed() -> Bool {
@@ -114,9 +115,19 @@ final class LidDimmer: @unchecked Sendable {
         apply(0, to: lastOpen)
     }
 
-    private func restore() {
+    private func restore(fade: Bool = true) {
         guard let saved = dimmed else { return }
 
+        if fade {
+            let start = DispatchTime.now().uptimeNanoseconds
+            while true {
+                let elapsed = Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000_000
+                let progress = Float(elapsed / Self.fadeDuration)
+                if progress >= 1 { break }
+                apply(progress * progress, to: saved)
+                Thread.sleep(forTimeInterval: 0.004)
+            }
+        }
         apply(1, to: saved)
         if let auto = saved.keyboardAuto { writeKeyboardAuto(auto) }
 
